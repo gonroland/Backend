@@ -7,7 +7,10 @@ const productManager = new ProductManager();
 
 app.get('/products', async (req, res) => {
   try {
-    const products = await productManager.getAllProducts();
+    let limit = req.query.limit;
+    limit = limit ? parseInt(limit) : undefined; 
+
+    const products = await productManager.getAllProducts(limit);
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });
