@@ -2,7 +2,7 @@ const fs = require('fs').promises;
 
 class ProductManager {
   constructor() {
-    this.filePath = './products/products.json';
+    this.filePath = '../products/products.json';
   }
 
   async getAllProducts() {
@@ -10,6 +10,7 @@ class ProductManager {
       const data = await fs.readFile(this.filePath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
+      console.error('Error reading products file:', error);
       throw new Error('Error reading products file');
     }
   }
