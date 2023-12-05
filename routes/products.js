@@ -29,7 +29,6 @@ module.exports = function (io) {
     }
   });
 
-    // Agregar un nuevo producto
     router.post('/', (req, res) => {
       try {
         const productos = JSON.parse(fs.readFileSync(productosPath, 'utf-8'));

@@ -33,7 +33,7 @@ app.get('/realtimeproducts', (req, res) => {
   res.render('realTimeProducts');
 });
 
-// Configurar WebSocket
+// WebSocket
 io.on('connection', (socket) => {
   console.log('Usuario conectado');
 });
