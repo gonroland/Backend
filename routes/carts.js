@@ -4,7 +4,6 @@ const fs = require('fs');
 
 const carritoPath = './data/carrito.json';
 
-// Crear un nuevo carrito
 router.post('/', (req, res) => {
   try {
     const carritos = JSON.parse(fs.readFileSync(carritoPath, 'utf-8'));
@@ -20,7 +19,6 @@ router.post('/', (req, res) => {
   }
 });
 
-// Obtener productos en un carrito por ID
 router.get('/:cid', (req, res) => {
   const cartId = req.params.cid;
   try {
@@ -36,7 +34,6 @@ router.get('/:cid', (req, res) => {
   }
 });
 
-// Agregar un producto a un carrito por ID
 router.post('/:cid/product/:pid', (req, res) => {
   const cartId = req.params.cid;
   const productId = req.params.pid;
@@ -46,10 +43,8 @@ router.post('/:cid/product/:pid', (req, res) => {
     const productIndex = carritos[cartIndex].products.findIndex((p) => p.id === productId);
 
     if (productIndex !== -1) {
-      
       carritos[cartIndex].products[productIndex].quantity += 1;
     } else {
-      
       carritos[cartIndex].products.push({ id: productId, quantity: 1 });
     }
 
@@ -60,7 +55,6 @@ router.post('/:cid/product/:pid', (req, res) => {
   }
 });
 
-// Función para generar un ID único para un carrito
 function generateCartId() {
   return Math.random().toString(36).substr(2, 9);
 }
