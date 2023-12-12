@@ -8,6 +8,7 @@ module.exports = function (io) {
   router.get('/', (req, res) => {
     try {
       const productos = JSON.parse(fs.readFileSync(productosPath, 'utf-8'));
+      console.log('Productos cargados:', productos);
       res.json(productos);
     } catch (error) {
       res.status(500).json({ error: 'Error al obtener productos.' });

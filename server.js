@@ -10,21 +10,21 @@ const io = socketIO(server);
 
 const PORT = 8080;
 
-//Handlebars
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.engine('.handlebars', exphbs({ extname: '.handlebars' }));
+const hbs = exphbs.create({ extname: '.handlebars' });
+
+app.engine('.handlebars', hbs.engine);
 app.set('view engine', '.handlebars');
 app.set('views', path.join(__dirname, 'views'));
 
-const productsRouter = require('./routes/products')(io); 
+const productsRouter = require('./routes/products')(io);
 const cartsRouter = require('./routes/carts');
 
 app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
 
-// Rutas para las vistas Handlebars
 app.get('/', (req, res) => {
   res.render('home');
 });
@@ -33,7 +33,6 @@ app.get('/realtimeproducts', (req, res) => {
   res.render('realTimeProducts');
 });
 
-// WebSocket
 io.on('connection', (socket) => {
   console.log('Usuario conectado');
 });
