@@ -1,25 +1,58 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
+const Product = require('../models/product');
 
 module.exports = function (io) {
-  const productosPath = './data/productos.json';
-
-  router.get('/', (req, res) => {
+  router.get('/', async (req, res) => {
     try {
-      const productos = JSON.parse(fs.readFileSync(productosPath, 'utf-8'));
-      console.log('Productos cargados:', productos);
-      res.json(productos);
+      const { limit = 10, page = 1, sort, query, category, availability } = req.query;
+      const skip = (page - 1) * limit;
+  
+      const filter = {};
+      if (category) {
+        filter.category = category;
+      }
+      if (availability !== undefined) {
+        filter.status = availability === 'true';
+      }
+      if (query) {
+        filter.$or = [
+          { title: { $regex: query, $options: 'i' } },
+          { description: { $regex: query, $options: 'i' } },
+        ];
+      }
+  
+      const products = await Product.find(filter)
+        .sort(sort ? { price: sort === 'asc' ? 1 : -1 } : {})
+        .limit(Number(limit))
+        .skip(skip)
+        .exec();
+  
+      const totalProducts = await Product.countDocuments(filter);
+      const totalPages = Math.ceil(totalProducts / limit);
+  
+      const response = {
+        status: 'success',
+        payload: products,
+        totalPages,
+        prevPage: page > 1 ? page - 1 : null,
+        nextPage: page < totalPages ? page + 1 : null,
+        page: Number(page),
+        hasPrevPage: page > 1,
+        hasNextPage: page < totalPages,
+        prevLink: page > 1 ? `/api/products?limit=${limit}&page=${page - 1}` : null,
+        nextLink: page < totalPages ? `/api/products?limit=${limit}&page=${page + 1}` : null,
+      };
+  
+      res.json(response);
     } catch (error) {
-      res.status(500).json({ error: 'Error al obtener productos.' });
+      res.status(500).json({ status: 'error', error: 'Error al obtener productos.' });
     }
   });
 
-  router.get('/:pid', (req, res) => {
-    const productId = req.params.pid;
+  router.get('/:pid', async (req, res) => {
     try {
-      const productos = JSON.parse(fs.readFileSync(productosPath, 'utf-8'));
-      const product = productos.find((p) => p.id === productId);
+      const product = await Product.findOne({ id: req.params.pid });
       if (product) {
         res.json(product);
       } else {
@@ -30,41 +63,42 @@ module.exports = function (io) {
     }
   });
 
-    router.post('/', (req, res) => {
-      try {
-        const productos = JSON.parse(fs.readFileSync(productosPath, 'utf-8'));
-        const newProduct = {
-          id: generateProductId(),
-          title: req.body.title,
-          description: req.body.description,
-          code: req.body.code,
-          price: req.body.price,
-          status: req.body.status || true,
-          stock: req.body.stock,
-          category: req.body.category,
-          thumbnails: req.body.thumbnails || [],
-        };
-        productos.push(newProduct);
-        fs.writeFileSync(productosPath, JSON.stringify(productos, null, 2));
+  router.post('/', async (req, res) => {
+    try {
+      const newProduct = new Product({
+        title: req.body.title,
+        description: req.body.description,
+        code: req.body.code,
+        price: req.body.price,
+        status: req.body.status || true,
+        stock: req.body.stock,
+        category: req.body.category,
+        thumbnails: req.body.thumbnails || [],
+      });
 
-        // Enviar actualización a través de WebSocket
-        io.emit('updateProducts', productos);
+      await newProduct.save();
 
-        res.json(newProduct);
-      } catch (error) {
-        res.status(500).json({ error: 'Error al agregar el producto.' });
-      }
-    });
+      // Enviar actualización a través de WebSocket
+      io.emit('updateProducts', newProduct);
 
-  router.put('/:pid', (req, res) => {
+      res.json(newProduct);
+    } catch (error) {
+      res.status(500).json({ error: 'Error al agregar el producto.' });
+    }
+  });
+
+  router.put('/:pid', async (req, res) => {
     const productId = req.params.pid;
     try {
-      const productos = JSON.parse(fs.readFileSync(productosPath, 'utf-8'));
-      const index = productos.findIndex((p) => p.id === productId);
-      if (index !== -1) {
-        productos[index] = { ...productos[index], ...req.body };
-        fs.writeFileSync(productosPath, JSON.stringify(productos, null, 2));
-        res.json(productos[index]);
+      const updatedProduct = await Product.findByIdAndUpdate(
+        productId,
+        { ...req.body },
+        { new: true }
+      );
+
+      if (updatedProduct) {
+        io.emit('updateProducts', updatedProduct);
+        res.json(updatedProduct);
       } else {
         res.status(404).json({ error: 'Producto no encontrado.' });
       }
@@ -73,24 +107,20 @@ module.exports = function (io) {
     }
   });
 
-  router.delete('/:pid', (req, res) => {
+  router.delete('/:pid', async (req, res) => {
     const productId = req.params.pid;
     try {
-      let productos = JSON.parse(fs.readFileSync(productosPath, 'utf-8'));
-      productos = productos.filter((p) => p.id !== productId);
-      fs.writeFileSync(productosPath, JSON.stringify(productos, null, 2));
-      res.json({ success: true });
+      const deletedProduct = await Product.findByIdAndDelete(productId);
+      if (deletedProduct) {
+        io.emit('updateProducts', { action: 'delete', product: deletedProduct });
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: 'Producto no encontrado.' });
+      }
     } catch (error) {
       res.status(500).json({ error: 'Error al eliminar el producto.' });
     }
   });
 
-  function generateProductId() {
-    return Math.random().toString(36).substr(2, 9);
-  }
-
-  module.exports = router;
-
-
-return router;
+  return router;
 };

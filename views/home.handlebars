@@ -10,9 +10,9 @@
 <body>
   <h1>Lista de Productos</h1>
   <ul>
-    {{#each productos}}
-      <li>{{this.title}} - {{this.price}}</li>
-    {{/each}}
+{{#each this}}
+  <li>{{#if title}}{{title}}{{else}}No Title{{/if}} - {{#if price}}{{price}}{{else}}No Price{{/if}}</li>
+{{/each}}
   </ul>
 </body>
 
