@@ -15,7 +15,7 @@ const io = socketIO(server);
 const PORT = process.env.PORT || 8080;
 
 // Configuración de la conexión a MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/coderhouse', {
+mongoose.connect('mongodb+srv://gonzalodrolando:<password>@coderhouse.opzbd1v.mongodb.net/?retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
